@@ -413,7 +413,7 @@ try {
   await slider.press('End');
   await page.waitForFunction(() => document.querySelector('.dcp-trigger-effort')?.textContent === 'max');
   await page.locator('.dcp-codex-effort[data-highest]').waitFor();
-  assert.equal(await page.locator('.dcp-particles i').count(), 18);
+  assert.equal(await page.locator('.dcp-particles i').count(), 14);
   assert.equal(await page.locator('.dcp-thumb-particles i').count(), 16);
   assert.equal(await page.locator('.dcp-thumb-particles i').first().evaluate(el => getComputedStyle(el).animationIterationCount), '1');
   assert.equal(await page.locator('.dcp-thumb-particles i').first().evaluate(el => getComputedStyle(el).animationDuration), '0.62s');

@@ -114,7 +114,11 @@ try {
   assert.equal(await page.locator('.dme,.dme-mount').count(),0);
   await selectTier('max'); await page.waitForFunction(()=>document.querySelector('.dcp-trigger-effort')?.textContent==='max');
   assert.equal(await page.locator('.dcp-codex-effort[data-highest]').count(),1);
-  assert.equal(await page.locator('.dcp-particles i').count(),18); assert.equal(await page.locator('.dcp-thumb-particles i').count(),16);
+  const fillCanvas = page.locator('.dcp-max-fill canvas');
+  const fillBefore = await fillCanvas.evaluate(el => el.toDataURL());
+  await page.waitForTimeout(180);
+  assert.notEqual(await fillCanvas.evaluate(el => el.toDataURL()), fillBefore, 'maximum fill continues flowing');
+  assert.equal(await page.locator('.dcp-particles i').count(),14); assert.equal(await page.locator('.dcp-thumb-particles i').count(),16);
   assert.doesNotMatch(await panel.innerText(),/ultra/i); await snapshot('codex-max.png');
   await close(); await trigger.click(); await snapshot('codex-max-reopen.png');
   assert.equal(await page.locator('.dcp-thumb-particles').count(),0);

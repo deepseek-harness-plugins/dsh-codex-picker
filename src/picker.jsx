@@ -1,6 +1,7 @@
 import React, {useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {createPortal} from 'react-dom';
 import {pickerModel, modelSelection} from './picker-model.js';
+import {MaxFill, TrackParticles} from './max-effects.jsx';
 
 function Chevron() {
   return <svg className="dcp-chevron" aria-hidden="true" width="12" height="12" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg>;
@@ -91,13 +92,13 @@ function EffortSlider({levels, effort, busy, onSelect, modelName, onModels}) {
     <div className="dcp-slider" style={{'--dcp-progress': fraction}}>
       <div className="dcp-rail">
       <div className="dcp-rail-fill"/>
-      {highest && <div className="dcp-max-fill" data-reveal={burst || undefined} aria-hidden="true"/>}
+      {highest && <MaxFill reveal={burst}/>}
       <div className="dcp-ticks" aria-hidden="true">{levels.map((level, n) => <i key={level.key} data-hovered={hoveredTick === n || undefined} data-filled={n <= index || undefined} style={{left: `${levels.length > 1 ? n / (levels.length - 1) * 100 : 0}%`}}/>)}</div>
-      {highest && <div className="dcp-particles" aria-hidden="true">{Array.from({length: 18}, (_, n) => <i key={n} style={{left: `${5 + (n * 37 % 89)}%`, top: `${20 + n * 23 % 60}%`, width: `${n % 5 === 0 ? 2.5 : 1.5}px`, height: `${n % 5 === 0 ? 2.5 : 1.5}px`, animationDelay: `${-n * .31}s`, animationDuration: `${2.4 + n % 4 * .6}s`}}/>)}</div>}
+      {highest && <TrackParticles/>}
       </div>
       {highest && burst && <div className="dcp-thumb-particles" aria-hidden="true">{Array.from({length: 16}, (_, n) => {
-        const angle = n * Math.PI / 8 - Math.PI / 2, radius = n < 11 ? 34 : 24;
-        return <i key={n} style={{'--spark-x': `${Math.cos(angle) * radius}px`, '--spark-y': `${Math.sin(angle) * radius}px`, animationDelay: `${n % 3 * 6}ms`}}/>;
+        const angle = n * Math.PI / (n < 11 ? 5.5 : 2.5) - Math.PI / 2 + Math.sin(n * 3) * .13, radius = n < 11 ? 33 + Math.sin(n) * 2 : 23 + Math.cos(n) * 2;
+        return <i key={n} style={{'--spark-purple': `${n % 4 === 2 ? 82 : n % 4 === 0 && n > 0 ? 68 : 100}%`, '--spark-x': `${Math.cos(angle) * radius}px`, '--spark-y': `${Math.sin(angle) * radius}px`, animationDelay: `${n % 3 * 6}ms`}}/>;
       })}</div>}
       <div className="dcp-slider-position" aria-hidden="true"><div ref={thumb} className="dcp-slider-thumb"/></div>
       <input type="range" aria-label="思考强度" aria-valuetext={selected.label} min="0" max={levels.length - 1} step="1" value={index}
