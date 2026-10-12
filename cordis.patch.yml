@@ -1,0 +1,3 @@
+- insert:
+    - id: codex-picker
+      name: "@deepseekharness-plugin/dsh-codex-picker"
