@@ -1,6 +1,7 @@
 {
   "name": "@deepseekharness-plugin/dsh-codex-picker",
-  "version": "0.1.1",
+  "version": "0.1.2",
+  "icon": "./icon.svg",
   "description": "DeepSeek Harness Codex 风格模型与思考强度选择器",
   "type": "module",
   "license": "MIT",
@@ -15,14 +16,18 @@
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
-    "./client": "./lib/client.js"
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
     "lib",
     "cordis.patch.yml",
     "README.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "icon.svg",
+    "locale/*.json"
   ],
   "engines": {
     "node": ">=22.19.0",

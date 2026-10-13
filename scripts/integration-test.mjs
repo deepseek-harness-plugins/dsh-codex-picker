@@ -62,8 +62,8 @@ try {
   console.log('HOST_STARTED', 'BODY', (await page.locator('body').innerText()).slice(0, 3000));
   await page.getByRole('button', {name: '插件', exact: true}).click();
   console.log('PLUGIN_PAGE', (await page.locator('body').innerText()).slice(-3500));
-  await page.getByRole('switch', {name: '启用 @deepseekharness-plugin/dsh-model-efforts', exact: true}).click();
-  await page.getByRole('switch', {name: '启用 @deepseekharness-plugin/dsh-codex-picker', exact: true}).click();
+  await page.locator('[data-plugin-package="@deepseekharness-plugin/dsh-model-efforts"]').getByRole('switch').click();
+  await page.locator('[data-plugin-package="@deepseekharness-plugin/dsh-codex-picker"]').getByRole('switch').click();
   const settingsButton = page.getByRole('button', {name: /设置|Settings/i}).first();
   await settingsButton.click();
   await page.getByRole('button', {name: /^(模型|Models)$/}).click();
@@ -628,12 +628,12 @@ try {
   await pickerPopup.getByRole('menuitemradio', {name: 'claude-opus-5', exact: true}).click();
   // Disabling the plugin restores native regardless of the Codex preference.
   await page.getByRole('button', {name: '插件', exact: true}).click();
-  await page.getByRole('switch', {name: '启用 @deepseekharness-plugin/dsh-model-efforts', exact: true}).click();
+  await page.locator('[data-plugin-package="@deepseekharness-plugin/dsh-model-efforts"]').getByRole('switch').click();
   await page.getByText('新会话', {exact: true}).first().click();
   await pickerTrigger.waitFor();
   assert.equal(await pickerTrigger.count(), 1, 'disabling the editor leaves the independent Codex picker available');
   await page.getByRole('button', {name: '插件', exact: true}).click();
-  await page.getByRole('switch', {name: '启用 @deepseekharness-plugin/dsh-codex-picker', exact: true}).click();
+  await page.locator('[data-plugin-package="@deepseekharness-plugin/dsh-codex-picker"]').getByRole('switch').click();
   await page.getByText('新会话', {exact: true}).first().click();
   assert.equal(await pickerTrigger.count(), 0);
   await page.reload({waitUntil:'domcontentloaded'});

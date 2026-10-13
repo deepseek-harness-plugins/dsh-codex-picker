@@ -60,7 +60,7 @@ try {
   await page.goto(url,{waitUntil:'domcontentloaded'}); await page.locator('[contenteditable=true]').waitFor();
   if(await page.getByRole('button',{name:'继续',exact:true}).count()) await page.getByRole('button',{name:'继续',exact:true}).click();
   await page.getByRole('button',{name:'插件',exact:true}).click();
-  await page.getByRole('switch',{name:'启用 @deepseekharness-plugin/dsh-codex-picker',exact:true}).click();
+  await page.locator('[data-plugin-package="@deepseekharness-plugin/dsh-codex-picker"]').getByRole('switch').click();
   const settingsButton=page.getByRole('button',{name:/设置|Settings/i}).first();
   const configPath=join(profile,'cordis.patch.yml');
   const setStyle=async style=>{
@@ -173,7 +173,7 @@ try {
   await panel.getByRole('menuitemradio',{name:'claude-opus-5',exact:true}).click(); await close();
   await setStyle('DeepSeek 默认'); assert.equal(await trigger.count(),0);
   await setStyle('Codex'); await page.getByRole('button',{name:'插件',exact:true}).click();
-  await page.getByRole('switch',{name:'启用 @deepseekharness-plugin/dsh-codex-picker',exact:true}).click();
+  await page.locator('[data-plugin-package="@deepseekharness-plugin/dsh-codex-picker"]').getByRole('switch').click();
   await page.getByText('新会话',{exact:true}).first().click(); assert.equal(await trigger.count(),0);
   await page.getByRole('button',{name:/^选择模型/}).click(); assert.equal(await page.getByRole('menuitem',{name:/模型/}).count(),1);
   assert.equal(errors.length,0,errors.join('\n'));
