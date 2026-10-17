@@ -1,4 +1,4 @@
-import {spawn} from 'node:child_process';
+import {spawn,spawnSync} from 'node:child_process';
 import {mkdtemp, mkdir, writeFile, readFile, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve, join} from 'node:path';
@@ -61,11 +61,11 @@ try {
   if(await page.getByRole('button',{name:'继续',exact:true}).count()) await page.getByRole('button',{name:'继续',exact:true}).click();
   await page.getByRole('button',{name:'插件',exact:true}).click();
   await page.locator('[data-plugin-package="@deepseekharness-plugin/dsh-codex-picker"]').getByRole('switch').click();
-  const settingsButton=page.getByRole('button',{name:/设置|Settings/i}).first();
+  const openSettings=async()=>{await page.getByRole('button',{name:'账号菜单',exact:true}).click();await page.getByText('设置',{exact:true}).click();};
   const configPath=join(profile,'cordis.patch.yml');
   const setStyle=async style=>{
     const beforeStyle=await readFile(configPath,'utf8');
-    await settingsButton.click(); await page.getByRole('button',{name:'通用设置',exact:true}).click();
+    await openSettings(); await page.getByRole('button',{name:'通用设置',exact:true}).click();
     assert.equal(await page.getByRole('switch',{name:'思考强度设置 UI',exact:true}).count(),0);
     await page.getByRole('radio',{name:style,exact:true}).check();
     await page.locator('.dcp-settings').screenshot({path:join(artifacts,'picker-options.png')});
@@ -75,8 +75,8 @@ try {
   // Native picker is retained until the independent style setting is enabled.
   await page.getByText('新会话',{exact:true}).first().click();
   assert.equal(await page.locator('.dcp-picker-trigger').count(),0);
-  await page.getByRole('button',{name:/^选择模型/}).click();
-  await page.getByRole('menuitem',{name:/模型/}).click();
+  await page.getByRole('button',{name:/^(?:请)?选择模型/}).click();
+  if(await page.getByRole('menuitem',{name:/模型/}).count())await page.getByRole('menuitem',{name:/模型/}).click();
   await page.getByRole('menuitemradio',{name:'claude-opus-5',exact:true}).click();
   // Native model selection also saves the new-conversation default asynchronously.
   for(let n=0;n<100;n++){
@@ -172,11 +172,17 @@ try {
   await trigger.click(); assert.equal(await slider.count(),0); await search.fill('claude-opus-5');
   await panel.getByRole('menuitemradio',{name:'claude-opus-5',exact:true}).click(); await close();
   await setStyle('DeepSeek 默认'); assert.equal(await trigger.count(),0);
+  await page.getByRole('button',{name:/^(?:请)?选择模型/}).click();
+  await page.getByRole('menuitem',{name:/模型/}).waitFor(); await page.keyboard.press('Escape');
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.getByRole('button',{name:/^(?:请)?选择模型/}).click();
+  await page.getByRole('menuitem',{name:/模型/}).waitFor(); await page.keyboard.press('Escape');
   await setStyle('Codex'); await page.getByRole('button',{name:'插件',exact:true}).click();
   await page.locator('[data-plugin-package="@deepseekharness-plugin/dsh-codex-picker"]').getByRole('switch').click();
   await page.getByText('新会话',{exact:true}).first().click(); assert.equal(await trigger.count(),0);
-  await page.getByRole('button',{name:/^选择模型/}).click(); assert.equal(await page.getByRole('menuitem',{name:/模型/}).count(),1);
+  await page.getByRole('button',{name:/^(?:请)?选择模型/}).click(); assert.equal(await page.getByRole('menuitem',{name:/模型/}).count(),1);
   assert.equal(errors.length,0,errors.join('\n'));
+  await writeFile(join(artifacts,'verification.json'),JSON.stringify({host:spawnSync(cli,['--version'],{encoding:'utf8'}).stdout.trim(),errors,checks:['native-default-label','native-codex-style-switch','native-style-reload','native-restored-after-disable','low-and-off-requests','highest-tier-animation','menu-transition-and-fixed-header']},null,2));
   console.log('PICKER_UI_OK: standalone native/Codex picker, host reasoning data, local Off/low requests, animated highest tier, no repeat burst, fixed header, search, dark/narrow, preference reload, disable restores native');
 } catch(e){
   console.error('PAGE_ERRORS',errors); if(page){await page.screenshot({path:join(artifacts,'failure.png')});console.error((await page.locator('body').innerText()).slice(-5000));} throw e;

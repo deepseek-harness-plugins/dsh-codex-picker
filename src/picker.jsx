@@ -1,3 +1,4 @@
+import { decorateSlot } from './slot-decoration.js';
 import React, {useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {createPortal} from 'react-dom';
 import {pickerModel, modelSelection} from './picker-model.js';
@@ -277,23 +278,19 @@ export function CodexPicker({locked, available, directory, load, select}) {
 }
 
 export function installPicker(ctx, preferences) {
-  const name = 'conversation.input.model', registrations = new Map(), decorated = new WeakSet();
+  const name = 'conversation.input.model', registrations = new Map();
   const decorate = () => {
     const entries = ctx.slots.entries(name);
     for (const [entry, release] of registrations) if (!entries.includes(entry)) {registrations.delete(entry); release();}
     for (const entry of entries) {
-      // Shadow only DSH's native model seat. Other picker plugins retain their
-      // own priority and the original entry keeps its injection/cache identity.
-      if (entry.locale !== 'model' || (entry.options.priority ?? 0) !== 0 || decorated.has(entry.component) || registrations.has(entry)) continue;
-      const Native = entry.component;
-      function Picker(props) {
-        const settings = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
-        return settings.pickerStyle === 'deepseek' ? <Native {...props}/>
-          : <CodexPicker {...props}/>;
-      }
-      decorated.add(Picker);
+      // Decorate only DSH's native seat and retain its child-label renderer.
+      if (entry.locale !== 'model' || (entry.options.priority ?? 0) !== 0 || registrations.has(entry)) continue;
       registrations.set(entry, () => {});
-      const release = ctx.slots.register({name, ...entry.options, priority: -1, inject: entry.inject, locale: entry.locale, store: entry.store}, Picker);
+      const release = decorateSlot(ctx, name, entry, (Native, props, active) => {
+        const settings = useSyncExternalStore(preferences.subscribe, preferences.getSnapshot);
+        return !active || settings.pickerStyle === 'deepseek' ? <Native {...props}/>
+          : <CodexPicker {...props}/>;
+      });
       registrations.set(entry, release);
     }
   };

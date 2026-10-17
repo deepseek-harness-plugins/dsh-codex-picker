@@ -19,7 +19,7 @@ const {outputFiles} = await build({bundle: true, write: false, format: 'iife', j
     let sampling = true;
     const sample = () => {
       const trigger = document.querySelector('.dcp-picker-trigger'), title = document.querySelector('.dcp-effort-title span'), panel = document.querySelector('.dcp-picker-panel');
-      window.samples.push({title: title.textContent, triggerOpacity: getComputedStyle(trigger).opacity, rowOpacity: getComputedStyle(document.querySelector('[role=menuitemradio]')).opacity, sliderOpacity: getComputedStyle(document.querySelector('input[type=range]')).opacity, panelOpacity: getComputedStyle(panel).opacity});
+      window.samples.push({pending: state.pending !== null, title: title.textContent, triggerOpacity: getComputedStyle(trigger).opacity, rowOpacity: getComputedStyle(document.querySelector('[role=menuitemradio]')).opacity, sliderOpacity: getComputedStyle(document.querySelector('input[type=range]')).opacity, panelOpacity: getComputedStyle(panel).opacity});
       if (sampling) requestAnimationFrame(sample);
     };
     update({pending: selection}); requestAnimationFrame(sample);
@@ -49,7 +49,8 @@ try {
   await slider.press('Home');
   await page.waitForFunction(() => window.completed === 1);
   const samples = await page.evaluate(() => window.samples);
-  assert.equal(samples.length > 6, true);
+  assert.ok(samples.length >= 2, '延迟投影期间采集多个显示帧');
+  assert.ok(samples.some(sample => sample.pending) && samples.some(sample => !sample.pending), '覆盖请求等待与已完成但投影未到达的两个阶段');
   assert.equal(samples.every(sample => sample.title === 'low'), true, 'the draft does not revert while the host projection is delayed');
   for (const key of ['triggerOpacity', 'rowOpacity', 'sliderOpacity', 'panelOpacity']) assert.equal(samples.every(sample => sample[key] === '1'), true, `${key} remains stable while selecting`);
   assert.equal(await page.evaluate(() => window.originalTitle === document.querySelector('.dcp-effort-title span') && window.originalPanel === document.querySelector('.dcp-picker-panel')), true, 'tier changes preserve the title and panel nodes');

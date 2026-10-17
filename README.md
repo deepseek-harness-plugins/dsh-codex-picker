@@ -5,7 +5,7 @@
 为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 添加 Codex 风格的模型与思考强度选择器。
 
 [![Version](https://img.shields.io/github/package-json/v/deepseek-harness-plugins/dsh-codex-picker?style=flat-square&color=387dfa)](https://github.com/deepseek-harness-plugins/dsh-codex-picker)
-[![DSH](https://img.shields.io/badge/DSH-0.2.0--rc.2-387dfa?style=flat-square)](docs/VERIFICATION.md)
+[![DSH](https://img.shields.io/badge/DSH-0.2.1--rc.2-387dfa?style=flat-square)](docs/VERIFICATION.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-387dfa?style=flat-square)](LICENSE)
 
 [界面预览](#界面预览) · [安装](#安装) · [使用](#使用) · [开发](#开发) · [贡献](#贡献)
@@ -60,7 +60,7 @@
 
 在 DSH 插件列表中显示为「Codex 模型选择器」。
 
-需要 Node.js **≥ 22.19.0**，已验证的 DSH 版本为 **0.2.0-rc.2**。
+需要 Node.js **≥ 22.19.0**，已验证的 DSH 版本为 **0.2.1-rc.2**。
 
 ```sh
 git clone https://github.com/deepseek-harness-plugins/dsh-codex-picker.git
@@ -70,7 +70,7 @@ npm run build
 npm pack
 ```
 
-打开 DSH 的 **插件 → 添加插件**，输入生成的 `.tgz` 安装包的绝对路径，安装并启用插件。升级时安装新版同名安装包，保存正在编辑的内容并重启 DSH。
+打开 DSH 的 **插件 → 添加插件**，输入生成的 `.tgz` 安装包的绝对路径，安装并启用插件。升级时在插件详情中卸载旧版，再安装新版安装包；选择器样式偏好会保留。
 
 ## 使用
 
@@ -100,7 +100,7 @@ npm run check    # 执行全部检查
 
 页面测试使用隔离 DSH web profile 与本地模拟服务，需要已安装的 DSH CLI 与 Chrome。可通过 `DCP_CLI` 指定 CLI 路径，通过 `DCP_BROWSER` 指定 Playwright 浏览器通道。
 
-宿主接口、交互参数及验证结果见 [验证记录](docs/VERIFICATION.md)。
+最新版兼容修复见 [兼容性说明](docs/COMPATIBILITY.md)。宿主接口、交互参数及历史验证结果见 [验证记录](docs/VERIFICATION.md)。
 
 ## 贡献
 
