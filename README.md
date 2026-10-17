@@ -84,9 +84,9 @@ npm pack
 
 插件读取 DSH 的模型目录与实际档位，沿用宿主的会话切换接口。`off` 明确关闭思考，`Default` 沿用提供商默认行为；只显示当前模型已有的档位。
 
-如需在模型设置中自动匹配、增删档位或设置模型默认值，可以同时安装 [DSH Model Efforts](https://github.com/deepseek-harness-plugins/dsh-model-efforts)。本插件也可单独使用。
+在 DSH 0.2.1-rc.2 中，可通过 **设置 → 模型 → 编辑提供商 → 自定义设置 → 模型选项 → 推理等级** 增删档位并设置对应的 API 参数值。本插件直接读取这些原生配置，无需安装其他思考强度插件。
 
-从旧版 DSH Model Efforts 拆分升级时，会沿用原有的选择器样式偏好。两个插件之后分别保存各自的界面设置。
+旧版 DSH Model Efforts 已归档。选择器仍保留旧版样式偏好的迁移，之后独立保存界面设置。
 
 ## 开发
 
@@ -99,8 +99,6 @@ npm run check    # 执行全部检查
 ```
 
 页面测试使用隔离 DSH web profile 与本地模拟服务，需要已安装的 DSH CLI 与 Chrome。可通过 `DCP_CLI` 指定 CLI 路径，通过 `DCP_BROWSER` 指定 Playwright 浏览器通道。
-
-两个仓库位于同一目录且均已构建时，执行 `npm run test:integration` 可验证同时安装。也可以通过 `DCP_EFFORTS_PLUGIN` 指定 DSH Model Efforts 的本地目录。
 
 宿主接口、交互参数及验证结果见 [验证记录](docs/VERIFICATION.md)。
 
