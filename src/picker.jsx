@@ -1,7 +1,7 @@
 import { decorateSlot } from './slot-decoration.js';
 import React, {useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {createPortal} from 'react-dom';
-import {pickerModel, modelSelection} from './picker-model.js';
+import {pickerModel, modelSelection, filterModelGroups} from './picker-model.js';
 import {MaxFill, TrackParticles} from './max-effects.jsx';
 
 function Chevron() {
@@ -129,9 +129,9 @@ function EffortSlider({levels, effort, busy, onSelect, modelName, onModels}) {
   </div>;
 }
 
-export function CodexPicker({locked, available, directory, load, select}) {
+export function CodexPicker({locked, available, directory, load, select, t}) {
   const state = useSyncExternalStore(fn => directory.subscribe(fn), () => directory.getSnapshot());
-  const {choices, current, levels, effort, label} = pickerModel(state);
+  const {groups, choices, current, levels, effort, label} = pickerModel(state, t?.('provider.account'));
   const [popupState, setPopupState] = useState('closed'), [pane, setPane] = useState('root'), [query, setQuery] = useState('');
   const open = popupState === 'open', mounted = popupState !== 'closed';
   const popupStateRef = useRef(popupState); popupStateRef.current = popupState;
@@ -179,7 +179,7 @@ export function CodexPicker({locked, available, directory, load, select}) {
     else close();
   };
   const modelPane = pane === 'models' || !levels.length;
-  const visible = choices.filter(choice => `${choice.model.name} ${choice.model.id} ${choice.providerName}`.toLowerCase().includes(query.toLowerCase()));
+  const visibleGroups = filterModelGroups(groups, query);
   useLayoutEffect(() => {
     if (!mounted) {setHeight(null); return;}
     if (!open) return;
@@ -202,7 +202,7 @@ export function CodexPicker({locked, available, directory, load, select}) {
     const observer = new ResizeObserver(measure);
     for (const element of content.current.querySelectorAll('.dcp-codex-effort,.dcp-model-header,.dcp-model-list,.dcp-picker-error')) observer.observe(element);
     return () => observer.disconnect();
-  }, [mounted, open, modelPane, choices.length, query, error, loadError, failures.length]);
+  }, [mounted, open, modelPane, state.groups, query, error, loadError, failures.length]);
   useLayoutEffect(() => {
     if (open && modelPane) content.current.querySelector('.dcp-model-list').scrollTop = 0;
   }, [open, pane]);
@@ -253,18 +253,18 @@ export function CodexPicker({locked, available, directory, load, select}) {
         </div>
         <div className="dcp-picker-pane dcp-picker-models" data-active={modelPane} aria-hidden={!modelPane} inert={!modelPane}>
           <div className="dcp-model-header">
-            <div className="dcp-picker-heading">选择模型</div>
-            {choices.length > 8 && <input className="dcp-model-search" type="search" placeholder="搜索模型" aria-label="搜索模型" value={query} onChange={e => setQuery(e.target.value)}/>}
+            {choices.length > 4 && <input className="dcp-model-search" type="search" placeholder="搜索模型" aria-label="搜索模型" value={query} onChange={e => setQuery(e.target.value)}/>}
           </div>
           <div className="dcp-model-list" role="menu" aria-label="模型">
-            {visible.map(choice => <button type="button" key={JSON.stringify([choice.provider, choice.model.id])} role="menuitemradio"
+            {visibleGroups.map((group, index) => <div className="dcp-model-group" role="group" key={group.id} aria-labelledby={`${id}-group-${index}`}>
+              <div className="dcp-model-group-title" id={`${id}-group-${index}`}>{group.choices[0].providerName}</div>
+              {group.choices.map(choice => <button className="dcp-model-option" type="button" key={choice.model.id} role="menuitemradio"
               aria-label={choice.model.name} aria-description={choice.providerName || choice.provider}
               aria-checked={choice.selected} disabled={busy} onClick={() => {setPane('models'); selectModel(choice);}}>
-              <span className="dcp-model-name">{choice.model.name}
-                <small>{choice.providerName || choice.provider}</small>
-              </span>{choice.selected && <Check/>}
+              <span className="dcp-model-name">{choice.model.name}</span>{choice.selected && <Check/>}
             </button>)}
-            {!visible.length && <span className="dcp-picker-empty">{state.status === 'loading' ? '正在加载…' : query ? '没有匹配的模型' : '没有可用模型'}</span>}
+            </div>)}
+            {!visibleGroups.length && <span className="dcp-picker-empty">{state.status === 'loading' ? '正在加载…' : query ? '没有匹配的模型' : '没有可用模型'}</span>}
           </div>
         </div>
       </div>

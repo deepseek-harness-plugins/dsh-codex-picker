@@ -1,16 +1,18 @@
+import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile, mkdir} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {build} from 'esbuild';
 import {chromium} from 'playwright';
 
-const project = resolve(new URL('..', import.meta.url).pathname);
+const project = fileURLToPath(new URL('..', import.meta.url));
 const {outputFiles} = await build({bundle: true, write: false, format: 'iife', jsx: 'automatic', stdin: {resolveDir: project, loader: 'jsx', contents: `
   import React from 'react';
   import {createRoot} from 'react-dom/client';
   import {CodexPicker} from './src/picker.jsx';
   const listeners = new Set();
   let state = {current: {provider: 'fixture', model: 'fixture-model', reasoningEffort: 'high'}, groups: [{id: 'fixture', name: 'Fixture', models: [{id: 'fixture-model', name: 'Fixture Model', reasoning: {defaultEffort: 'high', efforts: ['low', 'medium', 'high', 'max'].map(id => ({id, name: id}))}}]}], pending: null, failures: [], error: null};
+  state.groups.push({id: 'relay', name: 'Relay', models: [{id:'fixture-model', name:'Fixture Model'}]});
   const directory = {subscribe: fn => {listeners.add(fn); return () => listeners.delete(fn);}, getSnapshot: () => state};
   const update = patch => {state = {...state, ...patch}; for (const fn of listeners) fn();};
   window.completed = 0;
@@ -32,8 +34,9 @@ const {outputFiles} = await build({bundle: true, write: false, format: 'iife', j
     sampling = false; window.completed++;
     return failed ? {ok: false, error: {message: 'Fixture selection failed'}} : {ok: true};
   };
-  createRoot(document.querySelector('#root')).render(<CodexPicker locked={false} available={true} directory={directory} load={() => {}} select={select}/>);
+  createRoot(document.querySelector('#root')).render(<CodexPicker locked={false} available={true} directory={directory} load={() => {}} select={select} renderSlot={(name, props) => <>{props.model.name}<span data-badge data-placement={props.placement}>1017</span></>}/>);
 `}});
+await mkdir(resolve(project, 'test-results'), {recursive:true});
 const styles = await readFile(resolve(project, 'src/styles.css'), 'utf8');
 const browser = await chromium.launch({channel: process.env.DCP_BROWSER ?? 'chrome', headless: true});
 try {
@@ -59,7 +62,17 @@ try {
   await page.locator('.dcp-model-link').click();
   assert.equal(await trigger.innerText().then(text => text.replace(/\s+/g, ' ')), 'Fixture Model low');
   assert.equal(await trigger.locator('.dcp-trigger-placeholder').count(), 0);
-  await page.getByRole('menuitemradio').press('Escape');
+  assert.deepEqual(await page.locator('.dcp-model-group-title').allTextContents(), ['Fixture', 'Relay']);
+  assert.equal(await page.getByRole('menuitemradio', {checked:true}).count(), 1);
+  assert.equal(await page.locator('[data-badge]').count(), 0, 'model rows use catalog names without temporary host badges');
+  assert.deepEqual(await page.locator('.dcp-model-name').allTextContents(), ['Fixture Model', 'Fixture Model']);
+  const selected = page.getByRole('menuitemradio', {checked:true});
+  await selected.focus(); await selected.press('ArrowDown');
+  assert.equal(await page.getByRole('group', {name:'Relay',exact:true}).getByRole('menuitemradio').evaluate(el => el === document.activeElement), true, 'keyboard navigation crosses provider headings');
+  await page.getByRole('menuitemradio').last().press('ArrowUp');
+  assert.equal(await selected.evaluate(el => el === document.activeElement), true);
+  await page.getByRole('dialog').screenshot({path:resolve(project,'test-results/grouped-models.png')});
+  await selected.press('Escape');
   await page.evaluate(() => {window.failNext = true;});
   await slider.press('ArrowRight');
   await page.getByRole('alert').waitFor();

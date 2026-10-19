@@ -30,13 +30,14 @@
 
 ### 在同一菜单中切换模型
 
-点击滑杆面板中的模型名称进入模型列表，选中支持思考强度的模型后，菜单收缩回滑杆。模型下方显示渠道名称，较长的列表支持搜索，标题与搜索框保持固定。
+点击滑杆面板中的模型名称进入模型列表，选中支持思考强度的模型后，菜单收缩回滑杆。模型列表沿用 DSH 原生的提供商分组：来源标题下显示目录中的模型名称和选中勾选，不附加临时版本徽标，较长的列表支持按模型或来源搜索，搜索框保持固定。
 
 <table>
-  <tr><th>模型与渠道</th><th>搜索模型</th></tr>
+  <tr><th>按来源分组</th><th>搜索模型</th><th>深色分组列表</th></tr>
   <tr>
-    <td align="center"><img src="docs/assets/codex-models.png" width="320" alt="带渠道名称的模型列表"></td>
-    <td align="center"><img src="docs/assets/codex-search.png" width="320" alt="搜索 Claude 模型的结果"></td>
+    <td align="center"><img src="docs/assets/codex-models.png" width="280" alt="DeepSeek 与 Anthropic 按来源分组的模型列表，无临时版本徽标"></td>
+    <td align="center"><img src="docs/assets/codex-search.png" width="280" alt="搜索 Claude 后只显示 Anthropic 分组中的匹配模型"></td>
+    <td align="center"><img src="docs/assets/codex-models-dark.png" width="280" alt="深色主题下按来源分组的模型列表"></td>
   </tr>
 </table>
 
@@ -55,6 +56,8 @@
     <td align="center"><img src="docs/assets/codex-dark.png" width="320" alt="深色主题下的 Codex 选择器"></td>
   </tr>
 </table>
+
+截图使用示例模型目录，实际可用模型与思考档位以你的提供商配置为准。
 
 ## 安装
 
@@ -96,6 +99,7 @@ npm run build     # 构建插件
 npm test          # 模型目录读取与偏好测试
 npm run test:ui   # 独立选择器的页面和交互测试
 npm run check    # 执行全部检查
+node scripts/readme-screenshots.mjs  # 在隔离 DSH 中更新 README 静态截图
 ```
 
 页面测试使用隔离 DSH web profile 与本地模拟服务，需要已安装的 DSH CLI 与 Chrome。可通过 `DCP_CLI` 指定 CLI 路径，通过 `DCP_BROWSER` 指定 Playwright 浏览器通道。

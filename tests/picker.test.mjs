@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPreferences, DEFAULT_PREFERENCES, PREFERENCE_KEY} from '../src/preferences.js';
-import {pickerModel, modelSelection} from '../src/picker-model.js';
+import {pickerModel, modelSelection, filterModelGroups} from '../src/picker-model.js';
 
 test('界面偏好默认保留原生选择器，可持久化两种样式', () => {
   const data = new Map(), storage = {getItem: key => data.get(key), setItem: (key, value) => data.set(key, value)};
@@ -50,4 +50,26 @@ test('无默认值时保留提供商 Default，缺失模型或未知档位不猜
   state.current.reasoningEffort = 'retained'; assert.equal(pickerModel(state).label, 'retained');
   state.current.model = 'missing'; assert.equal(pickerModel(state).current, undefined);
   assert.deepEqual(pickerModel(state).levels, []);
+});
+
+
+test('来源分组保留提供商信息、同名模型和顺序，搜索不留下空分组', () => {
+  const model = {id: 'same', name: 'Shared model'};
+  const state = {groups: [
+    {id: 'relay', name: 'Relay', provider: {id: 'relay', name: 'Relay', type: 'custom'}, models: [model]},
+    {id: 'empty', name: 'Empty', models: []},
+    {id: 'deepseek-official', name: 'DeepSeek API', models: [model]},
+    {id: 'deepseek-account', name: 'DeepSeek 账号', models: [model]},
+  ], current: {provider: 'relay', model: 'same'}};
+  const {groups, choices, current} = pickerModel(state);
+  assert.deepEqual(choices.map(choice => choice.provider), ['deepseek-account', 'deepseek-official', 'relay']);
+  assert.equal(current.providerInfo, state.groups[0].provider);
+  const localized = pickerModel(state, 'DeepSeek 账号').choices[0];
+  assert.equal(localized.providerName, 'DeepSeek 账号');
+  assert.equal(localized.providerInfo.name, 'DeepSeek 账号');
+  assert.equal(choices.filter(choice => choice.selected).length, 1);
+  assert.deepEqual(filterModelGroups(groups, ' Relay ').map(group => group.id), ['relay']);
+  assert.equal(filterModelGroups(groups, 'shared').length, 3);
+  assert.deepEqual(filterModelGroups(groups, 'missing'), []);
+  assert.deepEqual(state.groups.map(group => group.id), ['relay', 'empty', 'deepseek-official', 'deepseek-account']);
 });
