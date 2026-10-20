@@ -93,6 +93,17 @@ try {
     await Promise.all(el.getAnimations({subtree:true}).filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));
   });
   const snapshot=async name=>{await settle(); await panel.screenshot({path:join(artifacts,name)});};
+  const motionFrames=[];
+  const recordMotion=async duration=>{
+    const until=Date.now()+duration,clip=await panel.boundingBox();
+    do {
+      const start=Date.now();
+      const file=`boost-frame-${String(motionFrames.length).padStart(3,'0')}.png`;
+      motionFrames.push({file,at:start});
+      await page.screenshot({path:join(artifacts,file),clip,animations:'allow'});
+      await page.waitForTimeout(Math.max(0,70-(Date.now()-start)));
+    } while(Date.now()<until);
+  };
   const selectTier=async name=>{
     await slider.press('Home');
     for(let n=0;n<10;n++){
@@ -125,21 +136,35 @@ try {
   assert.equal(await page.locator('.dcp-thumb-particles').count(),0);
   const boost=page.getByRole('button',{name:'加速动画',exact:true});
   await boost.click();
+  await settle();
+  assert.equal(await boost.evaluate(el=>getComputedStyle(el).color),'rgb(146, 79, 247)','maximum tier uses the purple lightning state');
+  assert.equal(await page.locator('.dcp-max-particle-layer').evaluate(el=>getComputedStyle(el).opacity),'0','fast particles replace the drifting layer at maximum');
   assert.equal(await page.locator('.dcp-thumb-particles').count(),0,'enabling boost at max never replays the entry burst');
   await boost.click();
+  await settle();
+  assert.equal(await page.locator('.dcp-max-particle-layer').evaluate(el=>getComputedStyle(el).opacity),'1','disabling fast mode restores the drifting layer');
   assert.equal(await page.locator('.dcp-max-fill').count(),1,'disabling boost retains the maximum-tier fill');
   assert.equal(await page.locator('.dcp-particles i').count(),14,'maximum-tier particles remain with boost off');
   const anchor=await panel.boundingBox(); await selectTier('high'); await settle();
   const after=await panel.boundingBox(); assert.equal(Math.abs(anchor.x-after.x)<.1&&Math.abs(anchor.y-after.y)<.1,true);
   const configBeforeBoost=await readFile(configPath,'utf8');
   const beforeBoost={requests:requests.length,effort:await slider.getAttribute('aria-valuetext'),label:await trigger.getAttribute('aria-label')};
-  await boost.click(); await settle();
+  if(process.env.DCP_CAPTURE_BOOST) {await page.mouse.move(4,4);await recordMotion(450);}
+  await boost.click();
+  if(process.env.DCP_CAPTURE_BOOST) {await page.mouse.move(4,4);await recordMotion(2800);}
+  await settle();
   assert.equal(await boost.getAttribute('aria-pressed'),'true');
-  assert.equal(await page.locator('.dcp-boost').evaluate(el=>getComputedStyle(el).color),'rgb(56, 125, 250)');
-  assert.equal(await page.locator('.dcp-particles i').count(),14);
-  assert.equal(await page.locator('.dcp-particles').evaluate(el=>el.offsetWidth < el.parentElement.offsetWidth),true,'particles stay inside the filled portion');
+  assert.equal(await page.locator('.dcp-boost').evaluate(el=>getComputedStyle(el).color),'rgb(58, 131, 247)');
+  assert.equal(await page.locator('.dcp-fast-path i').count(),14);
+  assert.equal(await page.locator('.dcp-fast-path').first().evaluate(el=>el.offsetWidth === el.closest('.dcp-rail').offsetWidth),true,'particle speed is based on the full rail width');
+  assert.notEqual(await page.locator('.dcp-fast-clip').evaluate(el=>getComputedStyle(el).clipPath),'inset(0px)','particles are clipped to the filled portion');
   assert.deepEqual({requests:requests.length,effort:await slider.getAttribute('aria-valuetext'),label:await trigger.getAttribute('aria-label')},beforeBoost);
   await page.mouse.move(4,4); await snapshot('codex-boost.png');
+  if(process.env.DCP_CAPTURE_BOOST) {
+    await boost.click();await page.mouse.move(4,4);await recordMotion(750);
+    await writeFile(join(artifacts,'boost-motion-frames.json'),JSON.stringify(motionFrames));
+    await boost.click();await settle();
+  }
   assert.equal(await readFile(configPath,'utf8'),configBeforeBoost,'visual boost does not write model configuration');
   assert.equal(await page.locator('.dcp-slider-position').evaluate(el=>getComputedStyle(el).transitionDuration),'0.3s');
   await page.locator('.dcp-model-link').hover(); await page.waitForTimeout(140);

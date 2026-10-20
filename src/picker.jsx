@@ -2,12 +2,18 @@ import { decorateSlot } from './slot-decoration.js';
 import React, {useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore} from 'react';
 import {createPortal} from 'react-dom';
 import {pickerModel, modelSelection, filterModelGroups} from './picker-model.js';
-import {MaxFill, TrackParticles} from './max-effects.jsx';
+import {MaxFill, TrackParticles, FastTrackParticles} from './max-effects.jsx';
 
 function Chevron() {
   return <svg className="dcp-chevron" aria-hidden="true" width="12" height="12" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5"/></svg>;
 }
 const Check = () => <svg className="dcp-check" aria-hidden="true" width="16" height="16" viewBox="0 0 20 20"><path d="m4 10 4 4 8-10"/></svg>;
+
+function Lightning({filled}) {
+  const outline = 'M8.343 1.713C9.038 1.019 10.255 1.67 10.014 2.664L9.327 5.496h3.267c.978 0 1.51 1.143.88 1.891l-5.751 6.829c-.681.807-1.985.146-1.737-.88l.687-2.832H3.406c-.978 0-1.51-1.143-.88-1.891l5.751-6.829.066-.071Z';
+  const cutout = 'M3.329 9.29c-.054.065-.008.164.077.164h3.617c.502 0 .871.47.752.958l-.718 2.964 5.614-6.666c.054-.065.008-.164-.077-.164H8.978c-.502 0-.871-.471-.753-.958l.717-2.965L3.329 9.29Z';
+  return <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path fillRule="evenodd" d={filled ? outline : outline + cutout}/></svg>;
+}
 
 function useThumbSpring(thumb, highlighted) {
   useEffect(() => {
@@ -75,6 +81,12 @@ function EffortSlider({levels, effort, busy, onSelect, modelName, onModels, boos
   const wasHighest = useRef(highest), [burst, setBurst] = useState(false);
   useEffect(() => {setBurst(highest && !wasHighest.current); wasHighest.current = highest;}, [highest]);
   const fraction = levels.length > 1 ? index / (levels.length - 1) : 0;
+  const [boostMotion, setBoostMotion] = useState({enabled: boosted, phase: boosted ? 'active' : 'inactive', sequence: 0, start: 0});
+  if (boostMotion.enabled !== boosted) setBoostMotion({enabled: boosted, phase: boosted ? 'entering' : 'exiting', sequence: boostMotion.sequence + 1, start: boosted ? fraction : boostMotion.start});
+  useEffect(() => {
+    const timer = setTimeout(() => setBoostMotion(previous => ({...previous, phase: boosted ? 'active' : 'inactive'})), boosted ? 1200 : 350);
+    return () => clearTimeout(timer);
+  }, [boosted]);
   const commit = async () => {
     const next = draft.current;
     if (levels[next]?.id === effort) return;
@@ -85,10 +97,10 @@ function EffortSlider({levels, effort, busy, onSelect, modelName, onModels, boos
     }
   };
   const title = dragging.current || hostIndex >= 0 ? selected.label : effort ?? 'Default';
-  return <div className="dcp-codex-effort" data-highest={highest || undefined} data-boosted={boosted || undefined} data-dragging={isDragging || undefined} data-minimum={index === 0 || undefined}>
+  return <div className="dcp-codex-effort" data-highest={highest || undefined} data-boosted={boosted || undefined} data-boost-phase={boostMotion.phase} data-dragging={isDragging || undefined} data-minimum={index === 0 || undefined}>
     <div className="dcp-effort-header">
       <button type="button" className="dcp-boost" aria-label="加速动画" aria-pressed={boosted} title={boosted ? '关闭加速动画' : '开启加速动画'} onClick={onBoost}>
-        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24"><path d="m13.2 2-9 12h6.7L9.8 22l10-13h-7.2l1.6-7z"/></svg>
+        <span className="dcp-boost-content"><Lightning filled={boosted}/></span>
       </button>
       <button type="button" className="dcp-model-link" onClick={onModels}>
         <span className="dcp-effort-title" aria-live="polite"><span>{title}</span></span>
@@ -100,7 +112,8 @@ function EffortSlider({levels, effort, busy, onSelect, modelName, onModels, boos
       <div className="dcp-rail-fill"/>
       {highest && <MaxFill reveal={burst}/>}
       <div className="dcp-ticks" aria-hidden="true">{levels.map((level, n) => <i key={level.key} data-hovered={hoveredTick === n || undefined} data-filled={n <= index || undefined} style={{left: `${levels.length > 1 ? n / (levels.length - 1) * 100 : 0}%`}}/>)}</div>
-      {(highest || boosted) && <TrackParticles boosted={boosted}/>}
+      {highest && <div className="dcp-max-particle-layer" key={boostMotion.sequence - (boosted ? 1 : 0)} data-returning={!boosted && boostMotion.sequence > 0 || undefined}><TrackParticles/></div>}
+      <div className="dcp-fast-clip" aria-hidden="true"><FastTrackParticles key={boostMotion.sequence - (boosted ? 0 : 1)} initialProgress={boostMotion.start}/></div>
       </div>
       {highest && burst && <div className="dcp-thumb-particles" aria-hidden="true">{Array.from({length: 16}, (_, n) => {
         const angle = n * Math.PI / (n < 11 ? 5.5 : 2.5) - Math.PI / 2 + Math.sin(n * 3) * .13, radius = n < 11 ? 33 + Math.sin(n) * 2 : 23 + Math.cos(n) * 2;

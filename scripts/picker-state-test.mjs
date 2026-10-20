@@ -43,7 +43,7 @@ const browser = await chromium.launch({channel: process.env.DCP_BROWSER ?? 'chro
 try {
   const page = await browser.newPage({viewport: {width: 900, height: 700}});
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => {errors.push(error.message); console.error('PAGE_ERROR', error.message);});
   await page.setContent(`<style>${styles}</style><div id="root" style="position:fixed;bottom:24px;right:24px"></div><script>${outputFiles[0].text}</script>`);
   const trigger = page.locator('.dcp-picker-trigger');
   await trigger.click();
@@ -59,23 +59,35 @@ try {
   assert.deepEqual(await page.getByRole('dialog').boundingBox(), originalBounds, 'cosmetic boost does not move or resize the menu');
   assert.deepEqual(await page.evaluate(() => window.currentSelection()), originalSelection);
   assert.equal(await page.evaluate(() => window.completed), 0, 'boost never calls the host selection API');
-  const particle = page.locator('.dcp-particles i').first();
-  const beforeMotion = await particle.evaluate(el => getComputedStyle(el).transform);
-  await page.waitForTimeout(150);
-  assert.notEqual(await particle.evaluate(el => getComputedStyle(el).transform), beforeMotion, 'boost particles move at a non-maximum tier');
+  assert.deepEqual(errors, []);
+  assert.equal(await page.locator('.dcp-fast-path').count(),14, await page.locator('body').innerText());
+  const particle = page.locator('.dcp-fast-path').first();
+  const travel = await particle.evaluate(el => {
+    const animation = el.getAnimations()[0], {duration,delay} = animation.effect.getTiming();
+    animation.pause(); animation.currentTime = delay + duration * 1.2;
+    const before = new DOMMatrix(getComputedStyle(el).transform).m41;
+    animation.currentTime = delay + duration * 1.7;
+    const after = new DOMMatrix(getComputedStyle(el).transform).m41;
+    animation.play(); return {before,after,width:el.getBoundingClientRect().width};
+  });
+  assert.ok(travel.before > travel.after && Math.abs(travel.before - travel.after - travel.width * .5) < .1, `particles travel right to left across the entire track at a steady speed: ${JSON.stringify(travel)}`);
+  assert.match(await page.locator('.dcp-ticks i[data-filled]').first().evaluate(el => getComputedStyle(el).animationName), /dcp-boost-tick-travel/, 'filled ticks depart before the fast stream settles');
   await page.emulateMedia({reducedMotion:'reduce'});
   assert.equal(await particle.evaluate(el => getComputedStyle(el).animationName), 'none');
   await page.emulateMedia({reducedMotion:'no-preference'});
   await slider.press('Escape');
-  await page.getByRole('dialog').waitFor({state:'detached'});
+  await page.locator('.dcp-picker-panel').waitFor({state:'detached'});
   await trigger.click();
   await page.getByRole('dialog').evaluate(async el => {
     await Promise.all(el.getAnimations().map(animation => animation.finished));
   });
   assert.equal(await boost.getAttribute('aria-pressed'), 'true', 'closing the menu preserves the cosmetic toggle');
+  assert.equal(await page.locator('.dcp-codex-effort').getAttribute('data-boost-phase'),'active','reopening skips the activation transition');
+  assert.equal(await page.locator('.dcp-ticks i[data-filled]').first().evaluate(el=>getComputedStyle(el).opacity),'0');
   await boost.press('Space');
   assert.equal(await boost.getAttribute('aria-pressed'), 'false');
-  assert.equal(await page.locator('.dcp-particles').count(), 0);
+  await page.waitForFunction(() => getComputedStyle(document.querySelector('.dcp-fast-clip')).visibility === 'hidden');
+  assert.equal(await page.locator('.dcp-ticks i[data-filled]').first().evaluate(el => getComputedStyle(el).opacity), '1', 'ticks return after disabling boost');
   assert.equal(await page.evaluate(() => window.completed), 0);
   await page.evaluate(() => {window.originalTitle = document.querySelector('.dcp-effort-title span'); window.originalPanel = document.querySelector('.dcp-picker-panel');});
   await slider.press('Home');

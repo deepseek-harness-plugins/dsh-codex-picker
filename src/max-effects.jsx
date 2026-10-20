@@ -37,12 +37,28 @@ export function MaxFill({reveal}) {
   return <div className="dcp-max-fill" data-reveal={reveal || undefined} aria-hidden="true"><canvas ref={canvas}/></div>;
 }
 
-export function TrackParticles({boosted}) {
-  return <div className="dcp-particles" data-boosted={boosted || undefined} aria-hidden="true">{Array.from({length: 14}, (_, n) => <i key={n} style={{
+export function TrackParticles() {
+  return <div className="dcp-particles" aria-hidden="true">{Array.from({length: 14}, (_, n) => <i key={n} style={{
     left: `${4 + n * 37 % 92}%`, top: '50%', opacity: .4 + (n * 17 % 60) / 100,
     '--particle-scale': .5 + (n * 13 % 45) / 100,
     '--drift-start': `${n * 11 % 15 - 7}px`, '--drift-end': `${n * 7 % 15 - 7}px`,
     '--drift-duration': `${1.28 + (n * 19 % 192) / 100}s`, animationDelay: `${-n * .37}s`,
-    '--boost-duration': `${.8 + (n * 19 % 90) / 100}s`,
   }}/>)}</div>;
+}
+
+function particleRandom(index, seed) {
+  const value = Math.sin((index + 1) * 12.9898 + seed * 78.233) * 43758.5453;
+  return value - Math.floor(value);
+}
+
+// Paths span the full track; clipping follows the thumb without changing speed.
+export function FastTrackParticles({initialProgress}) {
+  const [start] = React.useState(initialProgress);
+  return <div className="dcp-fast-particles" aria-hidden="true">{Array.from({length: 14}, (_, index) => {
+    const duration = 1.9 / (1 + (particleRandom(index, 21) - .5) * .4);
+    return <span className="dcp-fast-path" key={index} style={{
+      top: `${12 + particleRandom(index, 23) * 76}%`,
+      animationDuration: `${duration}s`, animationDelay: `${index * 1.9 / 14 - duration * (1 - start)}s`,
+    }}><i style={{opacity: .4 + particleRandom(index, 11) * .6, transform: `translate(-50%,-50%) scale(${.5 + particleRandom(index, 12) * .45})`}}/></span>;
+  })}</div>;
 }
