@@ -37,11 +37,12 @@ export function MaxFill({reveal}) {
   return <div className="dcp-max-fill" data-reveal={reveal || undefined} aria-hidden="true"><canvas ref={canvas}/></div>;
 }
 
-export function TrackParticles() {
-  return <div className="dcp-particles" aria-hidden="true">{Array.from({length: 14}, (_, n) => <i key={n} style={{
+export function TrackParticles({boosted}) {
+  return <div className="dcp-particles" data-boosted={boosted || undefined} aria-hidden="true">{Array.from({length: 14}, (_, n) => <i key={n} style={{
     left: `${4 + n * 37 % 92}%`, top: '50%', opacity: .4 + (n * 17 % 60) / 100,
     '--particle-scale': .5 + (n * 13 % 45) / 100,
     '--drift-start': `${n * 11 % 15 - 7}px`, '--drift-end': `${n * 7 % 15 - 7}px`,
     '--drift-duration': `${1.28 + (n * 19 % 192) / 100}s`, animationDelay: `${-n * .37}s`,
+    '--boost-duration': `${.8 + (n * 19 % 90) / 100}s`,
   }}/>)}</div>;
 }

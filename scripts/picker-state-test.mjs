@@ -16,6 +16,7 @@ const {outputFiles} = await build({bundle: true, write: false, format: 'iife', j
   const directory = {subscribe: fn => {listeners.add(fn); return () => listeners.delete(fn);}, getSnapshot: () => state};
   const update = patch => {state = {...state, ...patch}; for (const fn of listeners) fn();};
   window.completed = 0;
+  window.currentSelection = () => state.current;
   const select = async selection => {
     window.samples = [];
     let sampling = true;
@@ -48,6 +49,34 @@ try {
   await trigger.click();
   const slider = page.getByRole('slider', {name: '思考强度', exact: true});
   await page.waitForTimeout(400);
+  const boost = page.getByRole('button', {name:'加速动画', exact:true});
+  const originalSelection = await page.evaluate(() => window.currentSelection());
+  const originalBounds = await page.getByRole('dialog').boundingBox();
+  assert.equal(await boost.getAttribute('aria-pressed'), 'false');
+  await boost.click();
+  assert.equal(await boost.getAttribute('aria-pressed'), 'true');
+  assert.equal(await boost.evaluate(el => getComputedStyle(el).cursor), 'pointer');
+  assert.deepEqual(await page.getByRole('dialog').boundingBox(), originalBounds, 'cosmetic boost does not move or resize the menu');
+  assert.deepEqual(await page.evaluate(() => window.currentSelection()), originalSelection);
+  assert.equal(await page.evaluate(() => window.completed), 0, 'boost never calls the host selection API');
+  const particle = page.locator('.dcp-particles i').first();
+  const beforeMotion = await particle.evaluate(el => getComputedStyle(el).transform);
+  await page.waitForTimeout(150);
+  assert.notEqual(await particle.evaluate(el => getComputedStyle(el).transform), beforeMotion, 'boost particles move at a non-maximum tier');
+  await page.emulateMedia({reducedMotion:'reduce'});
+  assert.equal(await particle.evaluate(el => getComputedStyle(el).animationName), 'none');
+  await page.emulateMedia({reducedMotion:'no-preference'});
+  await slider.press('Escape');
+  await page.getByRole('dialog').waitFor({state:'detached'});
+  await trigger.click();
+  await page.getByRole('dialog').evaluate(async el => {
+    await Promise.all(el.getAnimations().map(animation => animation.finished));
+  });
+  assert.equal(await boost.getAttribute('aria-pressed'), 'true', 'closing the menu preserves the cosmetic toggle');
+  await boost.press('Space');
+  assert.equal(await boost.getAttribute('aria-pressed'), 'false');
+  assert.equal(await page.locator('.dcp-particles').count(), 0);
+  assert.equal(await page.evaluate(() => window.completed), 0);
   await page.evaluate(() => {window.originalTitle = document.querySelector('.dcp-effort-title span'); window.originalPanel = document.querySelector('.dcp-picker-panel');});
   await slider.press('Home');
   await page.waitForFunction(() => window.completed === 1);
@@ -58,7 +87,7 @@ try {
   for (const key of ['triggerOpacity', 'rowOpacity', 'sliderOpacity', 'panelOpacity']) assert.equal(samples.every(sample => sample[key] === '1'), true, `${key} remains stable while selecting`);
   assert.equal(await page.evaluate(() => window.originalTitle === document.querySelector('.dcp-effort-title span') && window.originalPanel === document.querySelector('.dcp-picker-panel')), true, 'tier changes preserve the title and panel nodes');
   assert.equal(await page.locator('.dcp-effort-title span').evaluate(el => getComputedStyle(el).animationName), 'none');
-  assert.equal(await trigger.innerText(), '选择强度');
+  assert.equal(await trigger.innerText(), '选择推理强度');
   await page.locator('.dcp-model-link').click();
   assert.equal(await trigger.innerText().then(text => text.replace(/\s+/g, ' ')), 'Fixture Model low');
   assert.equal(await trigger.locator('.dcp-trigger-placeholder').count(), 0);

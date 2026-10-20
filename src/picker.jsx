@@ -57,7 +57,7 @@ function usePopover(open, pane, trigger, panel, close) {
   return position;
 }
 
-function EffortSlider({levels, effort, busy, onSelect, modelName, onModels}) {
+function EffortSlider({levels, effort, busy, onSelect, modelName, onModels, boosted, onBoost}) {
   const hostIndex = levels.findIndex(level => level.id === effort);
   const [index, setIndex] = useState(Math.max(0, hostIndex));
   const [isDragging, setDragging] = useState(false);
@@ -85,17 +85,22 @@ function EffortSlider({levels, effort, busy, onSelect, modelName, onModels}) {
     }
   };
   const title = dragging.current || hostIndex >= 0 ? selected.label : effort ?? 'Default';
-  return <div className="dcp-codex-effort" data-highest={highest || undefined} data-dragging={isDragging || undefined} data-minimum={index === 0 || undefined}>
-    <button type="button" className="dcp-model-link" onClick={onModels}>
-      <span className="dcp-effort-title" aria-live="polite"><span>{title}</span></span>
-      <span className="dcp-current-model">{modelName}<Chevron/></span>
-    </button>
+  return <div className="dcp-codex-effort" data-highest={highest || undefined} data-boosted={boosted || undefined} data-dragging={isDragging || undefined} data-minimum={index === 0 || undefined}>
+    <div className="dcp-effort-header">
+      <button type="button" className="dcp-boost" aria-label="加速动画" aria-pressed={boosted} title={boosted ? '关闭加速动画' : '开启加速动画'} onClick={onBoost}>
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24"><path d="m13.2 2-9 12h6.7L9.8 22l10-13h-7.2l1.6-7z"/></svg>
+      </button>
+      <button type="button" className="dcp-model-link" onClick={onModels}>
+        <span className="dcp-effort-title" aria-live="polite"><span>{title}</span></span>
+        <span className="dcp-current-model"><span>{modelName}</span><Chevron/></span>
+      </button>
+    </div>
     <div className="dcp-slider" style={{'--dcp-progress': fraction}}>
       <div className="dcp-rail">
       <div className="dcp-rail-fill"/>
       {highest && <MaxFill reveal={burst}/>}
       <div className="dcp-ticks" aria-hidden="true">{levels.map((level, n) => <i key={level.key} data-hovered={hoveredTick === n || undefined} data-filled={n <= index || undefined} style={{left: `${levels.length > 1 ? n / (levels.length - 1) * 100 : 0}%`}}/>)}</div>
-      {highest && <TrackParticles/>}
+      {(highest || boosted) && <TrackParticles boosted={boosted}/>}
       </div>
       {highest && burst && <div className="dcp-thumb-particles" aria-hidden="true">{Array.from({length: 16}, (_, n) => {
         const angle = n * Math.PI / (n < 11 ? 5.5 : 2.5) - Math.PI / 2 + Math.sin(n * 3) * .13, radius = n < 11 ? 33 + Math.sin(n) * 2 : 23 + Math.cos(n) * 2;
@@ -133,6 +138,8 @@ export function CodexPicker({locked, available, directory, load, select, t}) {
   const state = useSyncExternalStore(fn => directory.subscribe(fn), () => directory.getSnapshot());
   const {groups, choices, current, levels, effort, label} = pickerModel(state, t?.('provider.account'));
   const [popupState, setPopupState] = useState('closed'), [pane, setPane] = useState('root'), [query, setQuery] = useState('');
+  // Cosmetic state stays outside the menu lifecycle and never enters a selection.
+  const [boosted, setBoosted] = useState(false);
   const open = popupState === 'open', mounted = popupState !== 'closed';
   const popupStateRef = useRef(popupState); popupStateRef.current = popupState;
   const [error, setError] = useState('');
@@ -240,7 +247,7 @@ export function CodexPicker({locked, available, directory, load, select, t}) {
       data-open={mounted || undefined} data-placeholder={mounted && !modelPane || undefined} aria-busy={state.pending !== null} aria-expanded={open} aria-controls={open ? id : undefined} aria-haspopup="dialog" disabled={locked || !available}
       onClick={() => {open ? close(false) : setPopupState('open'); if (!open) {setPane('root'); setQuery(''); setError(''); load();}}}>
       <span hidden={mounted && !modelPane}>{current?.model.name ?? '选择模型'}</span>{label && <span hidden={mounted && !modelPane} className="dcp-trigger-effort">{label}</span>}
-      {mounted && !modelPane && <span className="dcp-trigger-placeholder">选择强度</span>}<Chevron/>
+      {mounted && !modelPane && <span className="dcp-trigger-placeholder">选择推理强度</span>}<Chevron/>
     </button>
     {mounted && createPortal(<div ref={panel} id={id} className="dcp-picker-panel dcp-picker-codex" role="dialog" aria-label="模型与思考强度"
       data-state={popupState} aria-busy={!locked && state.pending !== null} aria-hidden={!open} inert={!open}
@@ -249,6 +256,7 @@ export function CodexPicker({locked, available, directory, load, select, t}) {
       <div ref={content} className="dcp-picker-content"><div className="dcp-picker-views">
         <div className="dcp-picker-pane dcp-picker-root" data-active={!modelPane} aria-hidden={modelPane} inert={modelPane}>
           {levels.length > 0 && <EffortSlider key={JSON.stringify([current.provider, current.model.id])} levels={levels} effort={effort} busy={busy}
+            boosted={boosted} onBoost={() => setBoosted(value => !value)}
             modelName={current.model.name} onSelect={selectEffort} onModels={() => {setPane('models'); setQuery('');}}/>}
         </div>
         <div className="dcp-picker-pane dcp-picker-models" data-active={modelPane} aria-hidden={!modelPane} inert={!modelPane}>

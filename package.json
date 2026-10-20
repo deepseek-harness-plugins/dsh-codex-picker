@@ -1,6 +1,6 @@
 {
   "name": "@deepseekharness-plugin/dsh-codex-picker",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "icon": "./icon.svg",
   "description": "DeepSeek Harness Codex 风格模型与思考强度选择器",
   "type": "module",
