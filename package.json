@@ -1,6 +1,6 @@
 {
   "name": "@deepseekharness-plugin/dsh-codex-picker",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "icon": "./icon.svg",
   "description": "DeepSeek Harness Codex 风格模型与思考强度选择器",
   "type": "module",
@@ -49,7 +49,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.mjs",
-    "test:ui": "node scripts/picker-state-test.mjs && node scripts/ui-test.mjs",
+    "test:ui": "node scripts/picker-state-test.mjs && node scripts/boost-motion-test.mjs && node scripts/ui-test.mjs",
     "check": "npm run build && npm test && npm run test:ui"
   },
   "devDependencies": {

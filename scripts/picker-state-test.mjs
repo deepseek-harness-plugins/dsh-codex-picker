@@ -80,7 +80,7 @@ try {
     animation.play(); return {before,after,width:el.getBoundingClientRect().width};
   });
   assert.ok(travel.before > travel.after && Math.abs(travel.before - travel.after - travel.width * .5) < .1, `particles travel right to left across the entire track at a steady speed: ${JSON.stringify(travel)}`);
-  assert.match(await page.locator('.dcp-ticks i[data-filled]').first().evaluate(el => getComputedStyle(el).animationName), /dcp-boost-tick-travel/, 'filled ticks depart before the fast stream settles');
+  assert.match(await page.locator('.dcp-ticks i[data-filled]').first().evaluate(el => getComputedStyle(el).transitionDuration), /1.15s/, 'filled ticks depart with a continuous transition before the fast stream settles');
   await page.emulateMedia({reducedMotion:'reduce'});
   assert.equal(await particle.evaluate(el => getComputedStyle(el).animationName), 'none');
   await page.emulateMedia({reducedMotion:'no-preference'});
