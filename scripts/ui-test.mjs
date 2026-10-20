@@ -94,12 +94,12 @@ try {
   });
   const snapshot=async name=>{await settle(); await panel.screenshot({path:join(artifacts,name)});};
   const motionFrames=[];
-  const recordMotion=async duration=>{
+  const recordMotion=async(duration,frames=motionFrames,prefix='boost')=>{
     const until=Date.now()+duration,clip=await panel.boundingBox();
     do {
       const start=Date.now();
-      const file=`boost-frame-${String(motionFrames.length).padStart(3,'0')}.png`;
-      motionFrames.push({file,at:start});
+      const file=`${prefix}-frame-${String(frames.length).padStart(3,'0')}.png`;
+      frames.push({file,at:start});
       await page.screenshot({path:join(artifacts,file),clip,animations:'allow'});
       await page.waitForTimeout(Math.max(0,70-(Date.now()-start)));
     } while(Date.now()<until);
@@ -135,12 +135,29 @@ try {
   await close(); await trigger.click(); await snapshot('codex-max-reopen.png');
   assert.equal(await page.locator('.dcp-thumb-particles').count(),0);
   const boost=page.getByRole('button',{name:'加速动画',exact:true});
+  const maxMotionFrames=[];
+  if(process.env.DCP_CAPTURE_BOOST) {await page.mouse.move(4,4);await recordMotion(450,maxMotionFrames,'max-boost');}
   await boost.click();
+  if(process.env.DCP_CAPTURE_BOOST) {await page.mouse.move(4,4);await recordMotion(2800,maxMotionFrames,'max-boost');}
   await settle();
+  const maxStartupParticles=await page.locator('.dcp-fast-path').evaluateAll(paths=>paths.map(el=>{
+    const animation=el.getAnimations()[0],previousTime=animation.currentTime;
+    animation.pause();animation.currentTime=250;
+    const x=new DOMMatrix(getComputedStyle(el).transform).m41/el.getBoundingClientRect().width;
+    const opacity=Number(getComputedStyle(el).opacity)*Number(getComputedStyle(el.firstElementChild).opacity);
+    animation.currentTime=previousTime;animation.play();
+    return{x,opacity};
+  }));
+  assert.ok(maxStartupParticles.some(({x,opacity})=>x>.02&&x<.25&&opacity>.15),`max boost starts with visible particles at the left end: ${JSON.stringify(maxStartupParticles)}`);
+  await snapshot('codex-max-boost.png');
   assert.equal(await boost.evaluate(el=>getComputedStyle(el).color),'rgb(146, 79, 247)','maximum tier uses the purple lightning state');
   assert.equal(await page.locator('.dcp-max-particle-layer').evaluate(el=>getComputedStyle(el).opacity),'0','fast particles replace the drifting layer at maximum');
   assert.equal(await page.locator('.dcp-thumb-particles').count(),0,'enabling boost at max never replays the entry burst');
   await boost.click();
+  if(process.env.DCP_CAPTURE_BOOST) {
+    await page.mouse.move(4,4);await recordMotion(750,maxMotionFrames,'max-boost');
+    await writeFile(join(artifacts,'max-boost-motion-frames.json'),JSON.stringify(maxMotionFrames));
+  }
   await settle();
   assert.equal(await page.locator('.dcp-max-particle-layer').evaluate(el=>getComputedStyle(el).opacity),'1','disabling fast mode restores the drifting layer');
   assert.equal(await page.locator('.dcp-max-fill').count(),1,'disabling boost retains the maximum-tier fill');

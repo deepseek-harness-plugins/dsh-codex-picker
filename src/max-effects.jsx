@@ -51,14 +51,13 @@ function particleRandom(index, seed) {
   return value - Math.floor(value);
 }
 
-// Paths span the full track; clipping follows the thumb without changing speed.
-export function FastTrackParticles({initialProgress}) {
-  const [start] = React.useState(initialProgress);
+// Start with a populated track so the left end does not wait for the first crossing.
+export function FastTrackParticles() {
   return <div className="dcp-fast-particles" aria-hidden="true">{Array.from({length: 14}, (_, index) => {
     const duration = 1.9 / (1 + (particleRandom(index, 21) - .5) * .4);
     return <span className="dcp-fast-path" key={index} style={{
       top: `${12 + particleRandom(index, 23) * 76}%`,
-      animationDuration: `${duration}s`, animationDelay: `${index * 1.9 / 14 - duration * (1 - start)}s`,
+      animationDuration: `${duration}s`, animationDelay: `${index * 1.9 / 14 - duration}s`,
     }}><i style={{opacity: .4 + particleRandom(index, 11) * .6, transform: `translate(-50%,-50%) scale(${.5 + particleRandom(index, 12) * .45})`}}/></span>;
   })}</div>;
 }

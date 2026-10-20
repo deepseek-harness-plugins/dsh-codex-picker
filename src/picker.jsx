@@ -81,8 +81,8 @@ function EffortSlider({levels, effort, busy, onSelect, modelName, onModels, boos
   const wasHighest = useRef(highest), [burst, setBurst] = useState(false);
   useEffect(() => {setBurst(highest && !wasHighest.current); wasHighest.current = highest;}, [highest]);
   const fraction = levels.length > 1 ? index / (levels.length - 1) : 0;
-  const [boostMotion, setBoostMotion] = useState({enabled: boosted, phase: boosted ? 'active' : 'inactive', sequence: 0, start: 0});
-  if (boostMotion.enabled !== boosted) setBoostMotion({enabled: boosted, phase: boosted ? 'entering' : 'exiting', sequence: boostMotion.sequence + 1, start: boosted ? fraction : boostMotion.start});
+  const [boostMotion, setBoostMotion] = useState({enabled: boosted, phase: boosted ? 'active' : 'inactive', sequence: 0});
+  if (boostMotion.enabled !== boosted) setBoostMotion({enabled: boosted, phase: boosted ? 'entering' : 'exiting', sequence: boostMotion.sequence + 1});
   useEffect(() => {
     const timer = setTimeout(() => setBoostMotion(previous => ({...previous, phase: boosted ? 'active' : 'inactive'})), boosted ? 1200 : 350);
     return () => clearTimeout(timer);
@@ -113,7 +113,7 @@ function EffortSlider({levels, effort, busy, onSelect, modelName, onModels, boos
       {highest && <MaxFill reveal={burst}/>}
       <div className="dcp-ticks" aria-hidden="true">{levels.map((level, n) => <i key={level.key} data-hovered={hoveredTick === n || undefined} data-filled={n <= index || undefined} style={{left: `${levels.length > 1 ? n / (levels.length - 1) * 100 : 0}%`}}/>)}</div>
       {highest && <div className="dcp-max-particle-layer" key={boostMotion.sequence - (boosted ? 1 : 0)} data-returning={!boosted && boostMotion.sequence > 0 || undefined}><TrackParticles/></div>}
-      <div className="dcp-fast-clip" aria-hidden="true"><FastTrackParticles key={boostMotion.sequence - (boosted ? 0 : 1)} initialProgress={boostMotion.start}/></div>
+      <div className="dcp-fast-clip" aria-hidden="true"><FastTrackParticles key={boostMotion.sequence - (boosted ? 0 : 1)}/></div>
       </div>
       {highest && burst && <div className="dcp-thumb-particles" aria-hidden="true">{Array.from({length: 16}, (_, n) => {
         const angle = n * Math.PI / (n < 11 ? 5.5 : 2.5) - Math.PI / 2 + Math.sin(n * 3) * .13, radius = n < 11 ? 33 + Math.sin(n) * 2 : 23 + Math.cos(n) * 2;

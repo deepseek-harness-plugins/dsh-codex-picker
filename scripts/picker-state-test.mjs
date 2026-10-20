@@ -61,6 +61,15 @@ try {
   assert.equal(await page.evaluate(() => window.completed), 0, 'boost never calls the host selection API');
   assert.deepEqual(errors, []);
   assert.equal(await page.locator('.dcp-fast-path').count(),14, await page.locator('body').innerText());
+  const startupParticles = await page.locator('.dcp-fast-path').evaluateAll(paths => paths.map(el => {
+    const animation = el.getAnimations()[0], previousTime = animation.currentTime;
+    animation.pause(); animation.currentTime = 250;
+    const x = new DOMMatrix(getComputedStyle(el).transform).m41 / el.getBoundingClientRect().width;
+    const opacity = Number(getComputedStyle(el).opacity) * Number(getComputedStyle(el.firstElementChild).opacity);
+    animation.currentTime = previousTime; animation.play();
+    return {x, opacity};
+  }));
+  assert.ok(startupParticles.some(({x, opacity}) => x > .02 && x < .25 && opacity > .15), `the left end has visible particles within 250ms of enabling boost: ${JSON.stringify(startupParticles)}`);
   const particle = page.locator('.dcp-fast-path').first();
   const travel = await particle.evaluate(el => {
     const animation = el.getAnimations()[0], {duration,delay} = animation.effect.getTiming();
